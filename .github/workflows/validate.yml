@@ -31,15 +31,15 @@ jobs:
       - name: Verificar estado de PostgreSQL
         run: |
           docker exec udla_postgres \
-          pg_isready -U $POSTGRES_USER -d postgres
+          pg_isready -U ${{ vars.POSTGRES_USER }} -d postgres
 
       - name: Verificar bases creadas
         run: |
-          docker exec udla_postgres psql -U $POSTGRES_USER -d postgres -c "\l"
+          docker exec udla_postgres psql -U ${{ vars.POSTGRES_USER }} -d postgres -c "\l"
 
       - name: Mostrar tablas de la BD de competencias
         run: |
-          docker exec udla_postgres psql -U $POSTGRES_USER -d udlafutbolappcompetencias -c "\dt"
+          docker exec udla_postgres psql -U ${{ vars.POSTGRES_USER }} -d udlafutbolappcompetencias -c "\dt"
 
       - name: Detener contenedores
         if: always()
