@@ -33,7 +33,11 @@ jobs:
       
       - name: Construir imagen de PostgreSQL
         run: |
-          docker compose -f docker-compose.yml build postgres
+          docker build \
+            --build-arg POSTGRES_USER=${{ vars.POSTGRES_USER }} \
+            --build-arg POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            -t ${{ env.IMAGE_NAME }} \
+            -f Dockerfile.postgres .
 
       - name: Etiquetar imagen con commit SHA
         run: |
