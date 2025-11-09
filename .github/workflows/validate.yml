@@ -30,7 +30,8 @@ jobs:
 
       - name: Verificar estado de PostgreSQL
         run: |
-          docker exec udla_postgres pg_isready -U $POSTGRES_USER -d postgres
+          docker exec udla_postgres \
+          pg_isready -U $POSTGRES_USER -d postgres
 
       - name: Verificar bases creadas
         run: |
