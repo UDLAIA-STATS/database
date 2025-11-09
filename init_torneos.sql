@@ -1,0 +1,100 @@
+CREATE DATABASE udlafutbolappcompetencias;
+
+\connect  udlafutbolappcompetencias;
+
+-- =========================================
+-- Tabla: Temporada
+-- =========================================
+CREATE TABLE temporada (
+    idtemporada SERIAL PRIMARY KEY,
+    nombretemporada VARCHAR(250) NOT NULL UNIQUE,
+    descripciontemporada VARCHAR(250) NOT NULL,
+    tipotemporada VARCHAR(250) NOT NULL CHECK (tipotemporada IN ('Amistosa', 'Oficial')),
+    fechainiciotemporada TIMESTAMP NOT NULL,
+    fechafintemporada TIMESTAMP NOT NULL,
+    temporadaactiva BOOLEAN NOT NULL
+);
+
+-- =========================================
+-- Tabla: Torneo
+-- =========================================
+CREATE TABLE torneo (
+    idtorneo SERIAL PRIMARY KEY,
+    idtemporada INT NOT NULL REFERENCES temporada(idtemporada),
+    nombretorneo VARCHAR(250) NOT NULL UNIQUE,
+    descripciontorneo VARCHAR(250) NOT NULL,
+    fechainiciotorneo TIMESTAMP NOT NULL,
+    fechafintorneo TIMESTAMP NOT NULL,
+    torneoactivo BOOLEAN NOT NULL
+);
+
+-- =========================================
+-- Tabla: Institución
+-- =========================================
+CREATE TABLE institucion (
+    idinstitucion SERIAL PRIMARY KEY,
+    nombreinstitucion VARCHAR(250) NOT NULL,
+    institucionactiva BOOLEAN NOT NULL
+);
+
+-- =========================================
+-- Tabla: Equipo
+-- =========================================
+CREATE TABLE equipo (
+    idequipo SERIAL PRIMARY KEY,
+    idinstitucion INT NOT NULL REFERENCES institucion(idinstitucion),
+    nombreequipo VARCHAR(250) NOT NULL,
+    imagenequipo BYTEA,
+    equipoactivo BOOLEAN NOT NULL
+);
+
+-- =========================================
+-- Tabla: Partido
+-- =========================================
+CREATE TABLE partido (
+    idpartido SERIAL PRIMARY KEY,
+    fechapartido TIMESTAMP NOT NULL,
+    marcadorequipolocal INT,
+    marcadorequipovisitante INT,
+    idequipolocal INT NOT NULL REFERENCES equipo(idequipo),
+    idequipovisitante INT NOT NULL REFERENCES equipo(idequipo),
+    idtorneo INT NOT NULL REFERENCES torneo(idtorneo),
+    idtemporada INT NOT NULL REFERENCES temporada(idtemporada)
+);
+
+
+INSERT INTO institucion (nombreinstitucion, institucionactiva)
+SELECT v.nombre, v.activo
+FROM (VALUES
+  ('Escuela Politécnica Nacional', TRUE),
+  ('Escuela Superior Politécnica del Litoral (ESPOL)', TRUE),
+  ('Universidad de las Fuerzas Armadas (ESPE)', TRUE),
+  ('Universidad Central del Ecuador', TRUE),
+  ('Pontificia Universidad Católica del Ecuador (PUCE)', TRUE),
+  ('Universidad San Francisco de Quito (USFQ)', TRUE),
+  ('Universidad de Cuenca', TRUE),
+  ('Universidad Técnica Particular de Loja (UTPL)', TRUE),
+  ('Universidad Técnica de Ambato (UTA)', TRUE),
+  ('Universidad de las Américas (UDLA)', TRUE),
+  ('Universidad del Azuay (UDA)', TRUE),
+  ('Universidad Católica de Santiago de Guayaquil (UCSG)', TRUE),
+  ('Universidad Técnica del Norte (UTN)', TRUE),
+  ('Universidad Técnica de Manabí (UTM)', TRUE),
+  ('Universidad de Guayaquil', TRUE),
+  ('Universidad Laica Vicente Rocafuerte de Guayaquil (ULVR)', TRUE),
+  ('Universidad Internacional SEK (UISEK)', TRUE),
+  ('Universidad Regional Autónoma de los Andes (UNIANDES)', TRUE),
+  ('Universidad Estatal de Milagro (UNEMI)', TRUE),
+  ('Universidad Estatal de Bolívar (UEB)', TRUE),
+  ('Universidad Técnica de Machala (UTMACH)', TRUE),
+  ('Universidad Técnica Estatal de Quevedo (UTEQ)', TRUE),
+  ('Universidad Técnica de Cotopaxi (UTC)', TRUE),
+  ('Universidad Nacional de Loja (UNL)', TRUE),
+  ('Universidad Técnica Luis Vargas Torres de Esmeraldas (UTE-LVT)', TRUE),
+  ('Universidad Técnica de Babahoyo (UTB)', TRUE),
+  ('Universidad Estatal Amazónica (UEA)', TRUE),
+  ('Universidad Politécnica Salesiana (UPS)', TRUE),
+  ('Universidad Internacional del Ecuador (UIDE)', TRUE),
+  ('Universidad Metropolitana del Ecuador (UMET)', TRUE)
+) AS v(nombre, activo)
+WHERE NOT EXISTS (SELECT 1 FROM institucion i WHERE i.nombreinstitucion = v.nombre);
