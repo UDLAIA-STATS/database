@@ -42,14 +42,12 @@ jobs:
       - name: Etiquetar imagen con commit SHA
         run: |
           TAG=${GITHUB_SHA::7}
-          docker tag ${{ env.IMAGE_NAME }} ${{ env.DOCKERHUB_REPO }}:$TAG
-          docker tag ${{ env.IMAGE_NAME }} ${{ env.DOCKERHUB_REPO }}:latest
+          docker tag ${{ env.IMAGE_NAME }} ${{ env.DOCKERHUB_REPO }}:${{ env.IMAGE_NAME }}
 
       - name: Subir imagen a DockerHub
         run: |
           TAG=${GITHUB_SHA::7}
-          docker push ${{ env.DOCKERHUB_REPO }}:$TAG
-          docker push ${{ env.DOCKERHUB_REPO }}:latest
+          docker push ${{ env.DOCKERHUB_REPO }}:${{ env.IMAGE_NAME }}
 
       - name: Mostrar imágenes subidas
         run: docker images | grep ${{ env.IMAGE_NAME }}
