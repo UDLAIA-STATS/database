@@ -1,0 +1,24 @@
+# Imagen base de PostgreSQL 16 oficial
+FROM postgres:16-bookworm
+
+# Metadata opcional (para identificación en DockerHub)
+LABEL maintainer="David Guaman david.guaman@udla.edu.ec"
+LABEL description="Imagen personalizada de PostgreSQL 16 para UDLA Stats"
+
+# Crear carpeta de inicialización si no existe
+RUN mkdir -p /docker-entrypoint-initdb.d
+
+# Copiar los scripts SQL al contenedor
+COPY init_usuarios.sql /docker-entrypoint-initdb.d/01_init_usuarios.sql
+COPY init_jugadores.sql /docker-entrypoint-initdb.d/02_init_jugadores.sql
+COPY init_torneos.sql /docker-entrypoint-initdb.d/03_init_torneos.sql
+
+# Ajustar permisos de los scripts (por seguridad)
+RUN chmod 755 /docker-entrypoint-initdb.d/*.sql
+
+# Exponer el puerto estándar de PostgreSQL
+EXPOSE 5432
+
+# Heredar el entrypoint del contenedor oficial (no tocar)
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["postgres"]
