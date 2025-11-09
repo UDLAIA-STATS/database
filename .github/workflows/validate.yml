@@ -1,0 +1,40 @@
+name: Validate PostgreSQL Compose
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  validate-postgres:
+    runs-on: ubuntu-latest
+    name: Validar inicialización de PostgreSQL
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Configurar Docker Compose
+        run: |
+          docker compose version
+
+      - name: Levantar servicios con Docker Compose
+        run: |
+          docker compose up -d
+          sleep 10
+          docker ps
+
+      - name: Verificar estado de PostgreSQL
+        run: |
+          docker exec udla_postgres pg_isready -U $POSTGRES_USER -d postgres
+
+      - name: Verificar bases creadas
+        run: |
+          docker exec udla_postgres psql -U $POSTGRES_USER -d postgres -c "\l"
+
+      - name: Mostrar tablas de la BD de competencias
+        run: |
+          docker exec udla_postgres psql -U $POSTGRES_USER -d udlafutbolappcompetencias -c "\dt"
+
+      - name: Detener contenedores
+        if: always()
+        run: docker compose down
