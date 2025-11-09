@@ -1,5 +1,5 @@
 # Imagen base de PostgreSQL 16 oficial
-FROM postgres:16-bookworm-
+FROM postgres:16-bookworm
 
 # Metadata opcional (para identificación en DockerHub)
 LABEL maintainer="David Guaman <david.guaman@udla.edu.ec>" \
