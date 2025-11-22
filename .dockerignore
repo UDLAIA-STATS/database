@@ -1,0 +1,8 @@
+.git
+.github
+.env
+*.md
+*.yml
+*.yaml
+__pycache__/
+postgres_data/
