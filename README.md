@@ -119,18 +119,8 @@ Get-Content .env | ForEach-Object {
 }
 
 # Luego ejecutar el contenedor con variables
-docker run -d \
-  --name udla_postgres \
-  --restart always \
-  -p 5440:5432 \
-  -e POSTGRES_USER=$Env:POSTGRES_USER \
-  -e POSTGRES_PASSWORD=$Env:POSTGRES_PASSWORD \
-  -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" \
-  -v postgres_data:/var/lib/postgresql/data \
-  -v "${PWD}/init_usuarios.sql:/docker-entrypoint-initdb.d/01_init_usuarios.sql" \
-  -v "${PWD}/init_jugadores.sql:/docker-entrypoint-initdb.d/02_init_jugadores.sql" \
-  -v "${PWD}/init_torneos.sql:/docker-entrypoint-initdb.d/03_init_torneos.sql" \
-  dase123/udlaia-stats:udla_postgres
+```
+docker run -d --name udla_postgres -p 5440:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=0000 dase123/udlaia-stats:udla_postgres
 ```
 
 ```powershell
