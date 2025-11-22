@@ -27,18 +27,22 @@ services:
       - app-net
   
   authservice:
-    image: dase123/udlaia-stats:udla_postgres
+    image: dase123/udlaia-stats:authservice
     container_name: authservice
     env_file: .env
     environment:
       DEBUG: "true"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
+      POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB}
       FRONTEND_URL: ${FRONTEND_URL}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      API_PORT: ${API_PORT}
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,6 +50,8 @@ services:
       - "8010:8010"
     networks:
       - app-net
+
+name: udlaia-stats
 
 volumes:
   postgres_data:
