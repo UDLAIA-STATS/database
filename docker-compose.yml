@@ -23,7 +23,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-net
+  
+  authservice:
+    image: dase123/udlaia-stats:udla_postgres
+    container_name: authservice
+    env_file: .env
+    environment:
+      DEBUG: "true"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      FRONTEND_URL: ${FRONTEND_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8010:8010"
+    networks:
+      - app-net
 
 volumes:
   postgres_data:
     driver: local
+
+networks:
+  app-net:
+    driver: bridge

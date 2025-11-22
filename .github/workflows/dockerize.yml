@@ -12,7 +12,7 @@ jobs:
     name: Construir y desplegar imagen PostgreSQL
 
     env:
-      IMAGE_NAME: udla_postgres
+      IMAGE_NAME: services
       DOCKERHUB_REPO: dase123/udlaia-stats
 
     steps:
