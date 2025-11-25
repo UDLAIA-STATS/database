@@ -1,4 +1,7 @@
 CREATE DATABASE udlafutbolappestudiantes;
+CREATE DATABASE udlafutbolappcompetencias;
+CREATE DATABASE udlafutbolappusuarios;
+CREATE DATABASE udlafutbolappestudiantes;
 
 -- \connect udlafutbolappestudiantes;
 
