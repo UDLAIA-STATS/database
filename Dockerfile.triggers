@@ -1,0 +1,14 @@
+FROM postgres:15-alpine
+
+RUN apk add --no-cache curl
+
+RUN mkdir -p /triggers
+
+COPY .docker/init_triggers.sh /init_triggers.sh
+COPY trigger_analysis.sql /triggers/trigger_analisis.sql
+COPY create_instituciones.sql /triggers/create_instituciones.sql
+
+RUN chmod +x /init_triggers.sh
+
+# El script se ejecutará al iniciar el contenedor
+ENTRYPOINT ["/init_triggers.sh"]

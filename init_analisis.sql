@@ -1,7 +1,5 @@
-CREATE DATABASE udlafutbolanalisis;
+-- CREATE DATABASE udlafutbolanalisis;
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE SCHEMA IF NOT EXISTS football;
 
 
 
