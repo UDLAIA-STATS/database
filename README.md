@@ -1,210 +1,210 @@
-# Base de Datos PostgreSQL con Docker Compose
+# UDLA Stats - Plataforma Multi-Servicio con Docker Compose
 
 ## Descripción del Proyecto
 
-Este proyecto proporciona un entorno PostgreSQL 16 listo para desarrollo usando Docker Compose. La configuración incluye:
+Este proyecto proporciona un entorno completo de desarrollo para UDLA Stats usando Docker Compose con múltiples servicios:
 
-- **PostgreSQL 16** con imagen personalizada optimizada para UDLA Stats
-- **Puerto personalizado**: El host expone el puerto **5440** que mapea al puerto estándar **5432** del contenedor
-- **Inicialización automática**: Scripts SQL se ejecutan automáticamente la primera vez que se crea el volumen de datos
-- **Healthcheck integrado**: Verificación con `pg_isready` para asegurar disponibilidad antes de conectar
-- **Datos persistentes**: Volumen Docker para mantener los datos entre reinicios del contenedor
+### Servicios Incluidos
+
+- **PostgreSQL 16**: Base de datos con imagen personalizada optimizada para UDLA Stats
+  - Puerto personalizado: **5440** (mapea al puerto **5432** del contenedor)
+  - Inicialización automática con scripts SQL
+  - Healthcheck integrado
+  - Datos persistentes mediante volúmenes Docker
+
+- **AuthService**: Servicio de autenticación y autorización basado en Django
+  - Puerto: **8010**
+  - Integración con PostgreSQL
+  - Gestión de usuarios y permisos
+  - Creación automática de superusuario
+
+### Características
+
+- **Red privada compartida**: Los servicios se comunican a través de una red Docker (`app-net`)
+- **Dependencias gestionadas**: AuthService espera a que PostgreSQL esté saludable antes de iniciar
+- **Configuración centralizada**: Variables de entorno en archivo `.env`
 
 ## Prerrequisitos
 
 Antes de comenzar, asegúrate de tener instalado:
 
+- **Git**: Para clonar el repositorio
 - **Docker Desktop** (Windows/macOS) o **Docker Engine** (Linux)
 - **Docker Compose v2** (comando `docker compose`) - también funciona `docker-compose` como alias
-- **Puerto 5440 libre** en el host
-- **1 GB de espacio libre** mínimo para imagen + volumen de datos
+- **Puertos libres**:
+  - **5440**: PostgreSQL
+  - **8010**: AuthService
+- **3 GB de espacio libre** mínimo para imágenes y volúmenes
 - **Acceso de red local** para clientes (pgAdmin, DBeaver, psql)
 - *Recomendado en Windows*: WSL 2 habilitado para mejor rendimiento de volúmenes
 
-## Configuración de Variables de Entorno
+## Instalación y Configuración
 
-### Archivo .env
-
-Las variables de entorno se configuran en el archivo `.env` ubicado en la raíz del proyecto (misma carpeta que `docker-compose.yml`).
-
-**Estructura del archivo .env:**
-
-```env
-# Variables requeridas
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=0000
-```
-
-**Variables disponibles:**
-
-- `POSTGRES_USER`: Usuario administrador de PostgreSQL *(requerida)*
-- `POSTGRES_PASSWORD`: Contraseña del usuario administrador *(requerida)*
-- `POSTGRES_DB`: Nombre de la base de datos principal *(opcional - si no se define, se crea una BD con el mismo nombre que POSTGRES_USER)*
-
-### Configuración de Seguridad
-
-⚠️ **Importante**: 
-- No subas el archivo `.env` con contraseñas reales al repositorio
-- Usa contraseñas robustas en entornos de producción
-- Considera rotar las contraseñas periódicamente
-
-## Ejecución Paso a Paso
-
-### 1. Preparación Inicial
-
-Asegúrate de que el archivo `.env` esté configurado con las credenciales deseadas.
-
-### 2. Descargar la Imagen desde Docker Hub
-
-Antes de ejecutar el contenedor, descarga la imagen personalizada desde Docker Hub:
+### 1. Clonar el Repositorio
 
 ```powershell
-# Descargar la imagen personalizada de PostgreSQL para UDLA Stats
-docker pull dase123/udlaia-stats:udla_postgres
+# Clonar el repositorio
+git clone <URL_DEL_REPOSITORIO>
+cd usersDb
 ```
 
-**Verificar que la imagen se descargó correctamente:**
+### 2. Configurar Variables de Entorno
+
+Crea el archivo `.env` a partir de la plantilla:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edita el archivo `.env` y configura las siguientes variables:
+
+#### Variables de PostgreSQL (Requeridas)
+
+- `POSTGRES_USER`: Usuario administrador de PostgreSQL (ej: `postgres`)
+- `POSTGRES_PASSWORD`: Contraseña del usuario administrador
+- `POSTGRES_DB`: Nombre de la base de datos principal (ej: `udla_stats`)
+
+#### Variables de AuthService (Requeridas)
+
+- `DJANGO_SUPERUSER_USERNAME`: Usuario administrador de Django (ej: `admin`)
+- `DJANGO_SUPERUSER_PASSWORD`: Contraseña del superusuario
+- `DJANGO_SUPERUSER_EMAIL`: Email del superusuario (ej: `admin@udla.edu.ec`)
+- `ALLOWED_HOSTS`: Hosts permitidos separados por comas (ej: `localhost,127.0.0.1`)
+- `FRONTEND_URL`: URL del frontend (ej: `http://localhost:4321`)
+- `API_PORT`: Puerto de la API (por defecto: `8010`)
+
+#### Variables Opcionales
+
+- `DEBUG`: Modo de depuración (`true`/`false`)
+
+**Ejemplo de configuración mínima en `.env`:**
+
+```env
+# PostgreSQL
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=TuPasswordSeguro123!
+POSTGRES_DB=udla_stats
+
+# Django AuthService
+DJANGO_SUPERUSER_USERNAME=admin
+DJANGO_SUPERUSER_PASSWORD=AdminPass123!
+DJANGO_SUPERUSER_EMAIL=admin@udla.edu.ec
+
+# Configuración general
+ALLOWED_HOSTS=localhost,127.0.0.1
+FRONTEND_URL=http://localhost:4321
+API_PORT=8010
+DEBUG=true
+```
+
+### 3. Seguridad de las Variables
+
+⚠️ **Importante**: 
+- **NUNCA** subas el archivo `.env` con contraseñas reales al repositorio
+- Usa contraseñas robustas (mínimo 12 caracteres con mayúsculas, minúsculas, números y símbolos)
+- Cambia las contraseñas de ejemplo por valores seguros
+- Considera rotar las contraseñas periódicamente
+
+## Uso de Docker Compose
+
+### 1. Descargar las Imágenes
+
+```powershell
+# Descargar las imágenes desde Docker Hub (opcional, docker compose lo hace automáticamente)
+docker pull dase123/udlaia-stats:udla_postgres
+docker pull dase123/udlaia-stats:authservice
+```
+
+**Verificar imágenes descargadas:**
 ```powershell
 docker images | findstr udlaia-stats
 ```
 
-## Opciones de Ejecución
-
-Tienes dos formas principales de ejecutar el contenedor PostgreSQL:
-
-### Opción A: Usando Docker Compose (Recomendado)
-
-### 3A. Iniciar con Docker Compose
+### 2. Iniciar Todos los Servicios
 
 ```powershell
-# Levantar el contenedor en segundo plano
+# Levantar todos los servicios en segundo plano
 docker compose up -d
 ```
 
-### 4A. Verificar Estado (Docker Compose)
+Esto iniciará:
+1. **PostgreSQL** primero (puerto 5440)
+2. **AuthService** después de que PostgreSQL esté saludable (puerto 8010)
+
+### 3. Verificar Estado de los Servicios
 
 ```powershell
-# Ver estado de los servicios
+# Ver estado de todos los servicios
 docker compose ps
 
-# Ver logs en tiempo real
+# Ver logs de todos los servicios
+docker compose logs -f
+
+# Ver logs de un servicio específico
 docker compose logs -f postgres
+docker compose logs -f authservice
 ```
 
-**Espera hasta que el estado sea `healthy` antes de intentar conectarse.**
+**Espera hasta que PostgreSQL esté en estado `healthy` y AuthService en `running`.**
 
-### 5A. Probar Conexión (Docker Compose)
+### 4. Verificar Conectividad
+
+#### PostgreSQL
 
 ```powershell
-# Conectar con psql desde PowerShell
-docker compose exec postgres psql -U $Env:POSTGRES_USER -d postgres
+# Conectar a PostgreSQL con psql
+docker compose exec postgres psql -U postgres -d udla_stats
 ```
 
-### Opción B: Usando Docker Run Directo
-
-### 3B. Ejecutar con Docker Run
+#### AuthService
 
 ```powershell
-# Opción 1: Ejecutar con variables de entorno directamente
-docker run -d --name udla_postgres -p 5440:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=0000 dase123/udlaia-stats:udla_postgres
+# Verificar que AuthService está respondiendo
+curl http://localhost:8010/api/
+
+# O abrir en el navegador:
+# http://localhost:8010/admin (panel de administración de Django)
 ```
+
+### 5. Gestión de los Servicios
 
 ```powershell
-# Opción 2: Ejecutar usando archivo .env (PowerShell)
-# Primero cargar variables del archivo .env
-Get-Content .env | ForEach-Object {
-    if ($_ -match '^([^=]+)=(.*)$') {
-        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-    }
-}
-
-# Luego ejecutar el contenedor con variables
-```
-docker run -d --name udla_postgres -p 5440:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=0000 dase123/udlaia-stats:udla_postgres
-```
-
-```powershell
-# Opción 3: Una sola línea con valores del .env (alternativa)
-docker run -d --name udla_postgres --restart always -p 5440:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=0000 -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" -v postgres_data:/var/lib/postgresql/data -v "${PWD}/init_usuarios.sql:/docker-entrypoint-initdb.d/01_init_usuarios.sql" -v "${PWD}/init_jugadores.sql:/docker-entrypoint-initdb.d/02_init_jugadores.sql" -v "${PWD}/init_torneos.sql:/docker-entrypoint-initdb.d/03_init_torneos.sql" dase123/udlaia-stats:udla_postgres
-```
-
-**Argumentos requeridos para `docker run`:**
-
-| Argumento | Descripción | Valor/Ejemplo |
-|-----------|-------------|---------------|
-| `-d` | Ejecutar en segundo plano (detached) | - |
-| `--name udla_postgres` | Nombre del contenedor | udla_postgres |
-| `--restart always` | Política de reinicio automático | always |
-| `-p 5440:5432` | Mapeo de puertos (host:contenedor) | 5440:5432 |
-| `-e POSTGRES_USER` | Usuario administrador de PostgreSQL | postgres (o valor del .env) |
-| `-e POSTGRES_PASSWORD` | Contraseña del usuario | 0000 (o valor del .env) |
-| `-e POSTGRES_INITDB_ARGS` | Argumentos de inicialización de DB | "--encoding=UTF8 --locale=C" |
-| `-v postgres_data:/var/lib/postgresql/data` | Volumen para datos persistentes | postgres_data |
-| `-v "script.sql:/docker-entrypoint-initdb.d/"` | Scripts de inicialización | Ruta a tus scripts SQL |
-| `dase123/udlaia-stats:udla_postgres` | Imagen de Docker Hub | dase123/udlaia-stats:udla_postgres |
-
-**Variables de entorno requeridas:**
-- `POSTGRES_USER`: Usuario administrador (requerida)
-- `POSTGRES_PASSWORD`: Contraseña del usuario (requerida)
-- `POSTGRES_INITDB_ARGS`: Configuración de inicialización (opcional)
-
-### 4B. Verificar Estado (Docker Run)
-
-```powershell
-# Ver estado del contenedor
-docker ps
-
-# Ver logs en tiempo real
-docker logs -f udla_postgres
-
-# Verificar healthcheck (si está configurado)
-docker inspect udla_postgres | findstr Health
-```
-
-### 5B. Probar Conexión (Docker Run)
-
-```powershell
-# Conectar con psql
-docker exec -it udla_postgres psql -U postgres -d postgres
-```
-
-### 6A. Gestión del Contenedor (Docker Compose)
-
-```powershell
-# Detener sin borrar datos
+# Detener todos los servicios sin borrar datos
 docker compose stop
 
-# Reiniciar servicios
+# Iniciar servicios detenidos
+docker compose start
+
+# Reiniciar todos los servicios
 docker compose restart
 
-# Apagar y borrar contenedor (mantiene volúmenes)
+# Reiniciar un servicio específico
+docker compose restart authservice
+
+# Apagar y eliminar contenedores (mantiene volúmenes/datos)
 docker compose down
 
 # Reset completo (elimina datos y volúmenes)
 docker compose down -v
 ```
 
-### 6B. Gestión del Contenedor (Docker Run)
+### 6. Gestión Individual de Servicios
 
 ```powershell
-# Detener contenedor
-docker stop udla_postgres
+# Iniciar solo PostgreSQL
+docker compose up -d postgres
 
-# Iniciar contenedor detenido
-docker start udla_postgres
+# Iniciar AuthService (inicia PostgreSQL automáticamente si no está corriendo)
+docker compose up -d authservice
 
-# Reiniciar contenedor
-docker restart udla_postgres
+# Detener solo AuthService
+docker compose stop authservice
 
-# Eliminar contenedor (mantiene volumen)
-docker rm udla_postgres
-
-# Eliminar contenedor y volumen (reset completo)
-docker rm udla_postgres
-docker volume rm postgres_data
+# Ver logs específicos con timestamps
+docker compose logs -f -t authservice
 ```
 
-## Comandos Disponibles de Docker Compose
+## Comandos Útiles de Docker Compose
 
 ### Comandos Básicos
 
@@ -223,75 +223,83 @@ docker compose exec postgres bash
 docker compose exec postgres psql -U $Env:POSTGRES_USER -d postgres
 ```
 
-### Gestión de Servicios
-
-```powershell
-# Detener servicios
-docker compose stop
-
-# Iniciar servicios detenidos
-docker compose start
-
-# Reiniciar servicios
-docker compose restart
-
-# Apagar y limpiar (conserva volúmenes)
-docker compose down
-
-# Apagar y eliminar volúmenes (reset completo)
-docker compose down -v
-```
-
 ### Mantenimiento y Actualización
 
 ```powershell
-# Actualizar imagen desde Docker Hub
+# Actualizar todas las imágenes desde Docker Hub
 docker pull dase123/udlaia-stats:udla_postgres
+docker pull dase123/udlaia-stats:authservice
 
-# Reconstruir imagen personalizada (si modificas Dockerfile)
+# Reconstruir imagen personalizada de PostgreSQL (si modificas Dockerfile)
 docker compose build --no-cache postgres
 
-# Recrear contenedor con Docker Compose
+# Recrear todos los contenedores con imágenes actualizadas
 docker compose up -d --force-recreate
 
-# Recrear contenedor con Docker Run
-docker stop udla_postgres && docker rm udla_postgres
-docker run -d --name udla_postgres [... argumentos completos ...]
+# Recrear solo un servicio específico
+docker compose up -d --force-recreate authservice
 
-# Validar configuración (solo Docker Compose)
+# Validar configuración de docker-compose.yml
 docker compose config
 
 # Listar volúmenes de Docker
 docker volume ls
 
-# Ver información detallada de la imagen
-docker inspect dase123/udlaia-stats:udla_postgres
+# Inspeccionar la red compartida
+docker network inspect udlaia-stats_app-net
 ```
 
 ## Información de Conexión
 
-### Parámetros de Conexión
+### PostgreSQL
+
+#### Desde el Host (tu máquina)
 
 - **Host**: `localhost`
 - **Puerto**: `5440`
-- **Usuario**: Valor de `POSTGRES_USER` (por defecto: `postgres`)
-- **Contraseña**: Valor de `POSTGRES_PASSWORD` (por defecto: `0000`)
-- **Base de datos**: `postgres` (o valor personalizado si se define `POSTGRES_DB`)
+- **Usuario**: Valor de `POSTGRES_USER` (ej: `postgres`)
+- **Contraseña**: Valor de `POSTGRES_PASSWORD`
+- **Base de datos**: Valor de `POSTGRES_DB` (ej: `udla_stats`)
 
-### Cadena de Conexión
+#### Desde otros contenedores Docker (mismo docker-compose)
+
+- **Host**: `postgres` (nombre del servicio)
+- **Puerto**: `5432` (puerto interno del contenedor)
+- **Usuario**: Valor de `POSTGRES_USER`
+- **Contraseña**: Valor de `POSTGRES_PASSWORD`
+- **Base de datos**: Valor de `POSTGRES_DB`
+
+### AuthService
+
+#### API REST
+
+- **URL Base**: `http://localhost:8010`
+- **Admin Panel**: `http://localhost:8010/admin`
+- **Usuario Admin**: Valor de `DJANGO_SUPERUSER_USERNAME`
+- **Contraseña Admin**: Valor de `DJANGO_SUPERUSER_PASSWORD`
+
+### Cadenas de Conexión
+
+#### PostgreSQL desde el host
 
 ```
-postgresql://postgres:0000@localhost:5440/postgres
+postgresql://postgres:TuPassword@localhost:5440/udla_stats
+```
+
+#### PostgreSQL desde contenedores Docker
+
+```
+postgresql://postgres:TuPassword@postgres:5432/udla_stats
 ```
 
 ### Conexión con psql
 
 ```powershell
-# Desde PowerShell (Windows)
-psql "host=localhost port=5440 dbname=postgres user=postgres password=0000 sslmode=disable"
+# Desde PowerShell (Windows) - conexión al host
+psql "host=localhost port=5440 dbname=udla_stats user=postgres password=TuPassword sslmode=disable"
 
-# Usando variables de entorno
-docker compose exec postgres psql -U $Env:POSTGRES_USER -d postgres
+# Usando Docker Compose
+docker compose exec postgres psql -U postgres -d udla_stats
 ```
 
 ### Clientes GUI
@@ -350,73 +358,131 @@ docker compose down -v
 docker compose up -d
 ```
 
-### Problemas de Rendimiento en Windows
-
-**Recomendación**: 
-- Usa WSL 2 para mejor rendimiento
-- Coloca el repositorio en el sistema de archivos de WSL
-- Evita rutas con caracteres especiales o muy largas
-
-### Autenticación Fallida
-
-**Verificar**:
-1. Valores correctos en `.env`
-2. Si cambias `POSTGRES_USER` después de la inicialización, puede ser necesario recrear los datos:
-   ```powershell
-   docker compose down -v
-   docker compose up -d
-   ```
-
 ### Imagen Corrupta u Obsoleta
 
 **Síntoma**: Errores durante la inicialización o comportamiento inesperado
 
-**Solución con Docker Compose**:
+**Solución**:
 ```powershell
-# Actualizar imagen desde Docker Hub
+# Actualizar imágenes desde Docker Hub
 docker pull dase123/udlaia-stats:udla_postgres
+docker pull dase123/udlaia-stats:authservice
 
-# O reconstruir imagen local si modificaste el Dockerfile
+# Reconstruir imagen local si modificaste el Dockerfile
 docker compose build --no-cache postgres
 
-# Recrear contenedor
+# Recrear contenedores
 docker compose up -d --force-recreate
 ```
 
-**Solución con Docker Run**:
-```powershell
-# Actualizar imagen desde Docker Hub
-docker pull dase123/udlaia-stats:udla_postgres
+### AuthService No Puede Conectarse a PostgreSQL
 
-# Detener y eliminar contenedor actual
-docker stop udla_postgres
-docker rm udla_postgres
+**Síntoma**: AuthService muestra errores de conexión a la base de datos
 
-# Crear nuevo contenedor con imagen actualizada
-docker run -d --name udla_postgres --restart always -p 5440:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=0000 -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" -v postgres_data:/var/lib/postgresql/data -v "${PWD}/init_usuarios.sql:/docker-entrypoint-initdb.d/01_init_usuarios.sql" -v "${PWD}/init_jugadores.sql:/docker-entrypoint-initdb.d/02_init_jugadores.sql" -v "${PWD}/init_torneos.sql:/docker-entrypoint-initdb.d/03_init_torneos.sql" dase123/udlaia-stats:udla_postgres
+**Soluciones**:
+1. Verificar que PostgreSQL esté en estado `healthy`:
+   ```powershell
+   docker compose ps
+   ```
+2. Revisar logs de AuthService:
+   ```powershell
+   docker compose logs authservice
+   ```
+3. Verificar variables de entorno en `.env`:
+   - `POSTGRES_USER`
+   - `POSTGRES_PASSWORD`
+   - `POSTGRES_DB`
+4. Reiniciar AuthService:
+   ```powershell
+   docker compose restart authservice
+   ```
+
+### Puerto 8010 en Uso
+
+**Síntoma**: Error al iniciar AuthService
 ```
+Error starting userland proxy: listen tcp4 0.0.0.0:8010: bind: address already in use
+```
+
+**Solución**:
+1. Identifica el proceso que usa el puerto:
+   ```powershell
+   netstat -ano | findstr :8010
+   ```
+2. Termina el proceso o cambia el puerto en `docker-compose.yml`:
+   ```yaml
+   services:
+     authservice:
+       ports:
+         - "8011:8010"  # Cambia 8010 por otro puerto libre
+   ```
+3. Actualiza `API_PORT` en `.env` si es necesario
+
+### Error al Crear Superusuario de Django
+
+**Síntoma**: AuthService no puede crear el superusuario automáticamente
+
+**Soluciones**:
+1. Verificar variables en `.env`:
+   - `DJANGO_SUPERUSER_USERNAME`
+   - `DJANGO_SUPERUSER_PASSWORD`
+   - `DJANGO_SUPERUSER_EMAIL`
+2. Crear superusuario manualmente:
+   ```powershell
+   docker compose exec authservice python manage.py createsuperuser
+   ```
+
+### Los Servicios No Se Comunican Entre Sí
+
+**Síntoma**: Los contenedores no pueden comunicarse a través de la red Docker
+
+**Soluciones**:
+1. Verificar que ambos servicios estén en la misma red:
+   ```powershell
+   docker network inspect udlaia-stats_app-net
+   ```
+2. Reiniciar la red completa:
+   ```powershell
+   docker compose down
+   docker compose up -d
+   ```
+3. Verificar que los nombres de host sean correctos:
+   - PostgreSQL: `postgres` (nombre del servicio)
+   - AuthService: `authservice` (nombre del servicio)
+
+## Arquitectura de Servicios
+
+```mermaid
+graph LR
+    A[Cliente/Browser] -->|Puerto 8010| B[AuthService]
+    A -->|Puerto 5440| C[PostgreSQL]
+    B -->|Red interna| C
+    C -->|Volumen persistente| D[postgres_data]
+```
+
+### Red Docker
+
+Todos los servicios están conectados a una red bridge llamada `app-net` que permite:
+- Comunicación interna entre servicios usando nombres de servicio
+- Aislamiento de otros contenedores Docker
+- Resolución DNS automática
 
 ## Estructura del Proyecto
 
 ```
 usersDb/
-├── docker-compose.yml          # Configuración de servicios Docker Compose
+├── docker-compose.yml          # Configuración multi-servicio
 ├── Dockerfile.postgres         # Imagen personalizada de PostgreSQL
-├── .env                        # Variables de entorno (no commitear con secretos)
+├── .env                        # Variables de entorno (NO subir al repo)
+├── .env.example               # Plantilla con todas las variables requeridas
 ├── .dockerignore              # Archivos ignorados por Docker
 ├── .gitignore                 # Archivos ignorados por Git
-├── init_usuarios.sql          # Script de inicialización - Usuarios
-├── init_jugadores.sql         # Script de inicialización - Jugadores  
-├── init_torneos.sql           # Script de inicialización - Torneos
+├── init_usuarios.sql          # Script SQL - Inicialización de usuarios
+├── init_jugadores.sql         # Script SQL - Inicialización de jugadores  
+├── init_torneos.sql           # Script SQL - Inicialización de torneos
 ├── LICENSE                    # Licencia del proyecto
 └── README.md                  # Guía de uso (este documento)
 ```
-
-### Notas sobre la Estructura
-
-- **Volumen de datos**: Se crea como volumen Docker (`postgres_data`) y no aparece como carpeta local
-- **Scripts de inicialización**: Se ejecutan en orden numérico/alfabético la primera vez que se inicializa el contenedor
-- **Archivo .env**: Contiene credenciales - **nunca** lo subas a repositorios públicos
 
 ## Inicialización de Datos
 
@@ -432,22 +498,6 @@ Estos scripts solo se ejecutan **una vez** cuando se crea el volumen de datos. P
 docker compose down -v  # Elimina volúmenes
 docker compose up -d    # Recrea y ejecuta scripts
 ```
-
-## Notas de Seguridad y Buenas Prácticas
-
-### Seguridad
-
-- ✅ **No subir** archivos `.env` con contraseñas reales al repositorio
-- ✅ **Usar contraseñas robustas** y rotarlas periódicamente
-- ✅ **Restringir acceso** al puerto 5440 a redes confiables
-- ✅ Para producción, considerar **Docker secrets** en lugar de variables de entorno
-
-### Buenas Prácticas
-
-- ✅ **Hacer backup regular** de los datos usando `pg_dump`
-- ✅ **Monitorear logs** regularmente con `docker compose logs`
-- ✅ **Actualizar imagen** periódicamente para parches de seguridad
-- ✅ **Usar volúmenes nombrados** para datos persistentes (ya implementado)
 
 ## Comandos de Backup y Restauración
 
