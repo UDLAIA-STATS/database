@@ -1,30 +1,5 @@
-\connect udlafutbolanalisis;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_type_enum') THEN
-        CREATE TYPE football.event_type_enum AS ENUM (
-          'pass',
-          'shot_on_target',
-          'goal',
-          'foul',
-          'assist',
-          'interception'
-        );
-    END IF;
-END
-$$;
-
-
-CREATE TABLE IF NOT EXISTS football.audit_logs (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    table_name  TEXT NOT NULL,
-    operation   TEXT NOT NULL,
-    changed_by  TEXT DEFAULT current_user,
-    old_data    JSONB,
-    new_data    JSONB,
-    changed_at  TIMESTAMPTZ DEFAULT now()
-);
+\connect udlafutbolappestudiantes
 
 CREATE OR REPLACE FUNCTION football.log_changes()
 RETURNS TRIGGER AS $$
@@ -105,3 +80,25 @@ FOR EACH ROW EXECUTE FUNCTION football.set_updated_at();
 CREATE TRIGGER trg_set_updated_at_player_stats_consolidated
 BEFORE UPDATE ON football.player_stats_consolidated
 FOR EACH ROW EXECUTE FUNCTION football.set_updated_at();
+
+
+CREATE INDEX IF NOT EXISTS idx_events_player_match
+ON football.player_events (player_id, match_id);
+
+CREATE INDEX IF NOT EXISTS idx_events_match_type
+ON football.player_events (match_id, event_type);
+
+CREATE INDEX IF NOT EXISTS idx_events_metadata_gin
+ON football.player_events USING GIN (metadata);
+
+CREATE INDEX IF NOT EXISTS idx_dist_player_match
+ON football.player_distance_history (player_id, match_id);
+
+CREATE INDEX IF NOT EXISTS idx_heat_player_match
+ON football.player_heatmaps (player_id, match_id);
+
+CREATE INDEX IF NOT EXISTS idx_consol_match
+ON football.player_stats_consolidated (match_id);
+
+CREATE INDEX IF NOT EXISTS idx_consol_player_match
+ON football.player_stats_consolidated (player_id, match_id);

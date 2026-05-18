@@ -16,7 +16,9 @@ services:
       - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init_databases.sql:/docker-entrypoint-initdb.d/01_init_databases.sql
+      - ./init_usuarios.sql:/docker-entrypoint-initdb.d/01_init_usuarios.sql
+      - ./init_jugadores.sql:/docker-entrypoint-initdb.d/02_init_jugadores.sql
+      - ./init_torneos.sql:/docker-entrypoint-initdb.d/03_init_torneos.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
       interval: 5s
@@ -34,38 +36,41 @@ services:
       DEBUG: "true"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB_AUTH}
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${AUTH_POSTGRES_DB}
       FRONTEND_URL: ${FRONTEND_URL}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
-      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
-      API_PORT: ${API_PORT_AUTH}
+      SECRET_KEY: ${AUTH_SECRET_KEY}
+      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
+      DEV_KEY: ${DEV_KEY}
+      LDCLIENT_ID: ${LDCLIENT_ID}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-      - "8030:8030"
+      - "8010:8010"
     networks:
       - app-net
-  
+
   teamservice:
     image: dase123/udlaia-stats:teamservice
     container_name: teamservice
+    restart: always
     env_file: .env
     environment:
       DEBUG: "true"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB_TEAMS}
-      FRONTEND_URL: ${FRONTEND_URL}
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${TEAM_POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY_TEAMS}
-      API_PORT: ${API_PORT_TEAMS}
+      SECRET_KEY: ${TEAM_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
+      DEV_KEY: ${DEV_KEY}
+      LDCLIENT_ID: ${LDCLIENT_ID}
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,23 +82,65 @@ services:
   studentservice:
     image: dase123/udlaia-stats:studentservice
     container_name: studentservice
+    restart: always
     env_file: .env
     environment:
       DEBUG: "true"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB_STUDENTS}
-      FRONTEND_URL: ${FRONTEND_URL}
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${STUDENT_POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY_STUDENTS}
-      API_PORT: ${API_PORT_STUDENTS}
+      SECRET_KEY: ${STUDENT_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
+      DEV_KEY: ${DEV_KEY}
+      LDCLIENT_ID: ${LDCLIENT_ID}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "8030:8030"
+    networks:
+      - app-net
+
+  upload_service:
+      image: dase123/udlaia-stats:upload_service
+      container_name: upload_service
+      restart: always
+      env_file: .env
+      environment:
+        DEBUG: "true"
+        WORKER_URL: ${WORKER_URL}
+        VIDEO_UPLOAD_NOTIFY_URL: ${VIDEO_UPLOAD_NOTIFY_URL}
+        ANALYSIS_SERVICE_URL: ${ANALYSIS_SERVICE_URL}
+        SECRET_KEY: ${UPLOAD_SECRET_KEY}
+      depends_on:
+        postgres:
+          condition: service_healthy
+      ports:
+        - "8050:8050"
+      networks:
+        - app-net
+
+  trigger-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.triggers
+    container_name: trigger-service
+    restart: no
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      studentservice:
+        condition: service_started
+      teamservice:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - app-net
 
@@ -104,4 +151,6 @@ volumes:
 
 networks:
   app-net:
+    external: true
     driver: bridge
+    name: shared-net
