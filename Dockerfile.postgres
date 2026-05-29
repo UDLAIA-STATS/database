@@ -18,7 +18,7 @@ COPY --chown=postgres:postgres init_torneos.sql /docker-entrypoint-initdb.d/03_i
 # Ajustar permisos de los scripts (por seguridad)
 RUN chmod 640 /docker-entrypoint-initdb.d/*.sql
 # Exponer el puerto estándar de PostgreSQL
-EXPOSE 5432
+EXPOSE 5440
 
 # Heredar el entrypoint del contenedor oficial (no tocar)
 ENTRYPOINT ["docker-entrypoint.sh"]

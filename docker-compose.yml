@@ -1,5 +1,60 @@
 name: udlaia-stats-services
 services:
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - app-net
+
+  kafka:
+    image: apache/kafka:4.2.1
+    container_name: kafka
+    hostname: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_BROKER_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: CONTROLLER://:9093,PLAINTEXT://:9092,EXTERNAL://:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_COMPRESSION_TYPE: lz4
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SESSION_TIMEOUT_MS: 30000
+      KAFKA_HEARTBEAT_INTERVAL_MS: 10000
+      KAFKA_MAX_POLL_INTERVAL_MS: 300000
+      KAFKA_MAX_POLL_RECORDS: 50
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - broker_data:/var/lib/kafka/data
+    networks:
+      - app-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - app-net
+    restart: on-failure
+
   postgres:
     build:
       context: .
@@ -7,13 +62,13 @@ services:
     image: udla_postgres
     container_name: udla_postgres
     restart: always
-    env_file: .env
+    env_file: envs/common.env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
       - "5440:5432"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init_usuarios.sql:/docker-entrypoint-initdb.d/01_init_usuarios.sql
@@ -31,23 +86,14 @@ services:
     image: dase123/udlaia-stats:authservice
     container_name: authservice
     restart: always
-    env_file: .env
-    environment:
-      DEBUG: "true"
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${AUTH_POSTGRES_DB}
-      FRONTEND_URL: ${FRONTEND_URL}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SECRET_KEY: ${AUTH_SECRET_KEY}
-      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
-      DEV_KEY: ${DEV_KEY}
-      LDCLIENT_ID: ${LDCLIENT_ID}
+    env_file:
+      - envs/common.env
+      - envs/auth.env
     depends_on:
       postgres:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8010:8010"
     networks:
@@ -57,23 +103,14 @@ services:
     image: dase123/udlaia-stats:teamservice
     container_name: teamservice
     restart: always
-    env_file: .env
-    environment:
-      DEBUG: "true"
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${TEAM_POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SECRET_KEY: ${TEAM_SECRET_KEY}
-      FRONTEND_URL: ${FRONTEND_URL}
-      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
-      DEV_KEY: ${DEV_KEY}
-      LDCLIENT_ID: ${LDCLIENT_ID}
+    env_file:
+      - envs/common.env
+      - envs/team.env
     depends_on:
       postgres:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8020:8020"
     networks:
@@ -83,46 +120,52 @@ services:
     image: dase123/udlaia-stats:studentservice
     container_name: studentservice
     restart: always
-    env_file: .env
-    environment:
-      DEBUG: "true"
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${STUDENT_POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SECRET_KEY: ${STUDENT_SECRET_KEY}
-      FRONTEND_URL: ${FRONTEND_URL}
-      LAUNCHDARKLY_SDK_KEY: ${LAUNCHDARKLY_SDK_KEY}
-      DEV_KEY: ${DEV_KEY}
-      LDCLIENT_ID: ${LDCLIENT_ID}
+    env_file:
+      - envs/common.env
+      - envs/student.env
     depends_on:
       postgres:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8030:8030"
     networks:
       - app-net
 
   upload_service:
-      image: dase123/udlaia-stats:upload_service
-      container_name: upload_service
-      restart: always
-      env_file: .env
-      environment:
-        DEBUG: "true"
-        WORKER_URL: ${WORKER_URL}
-        VIDEO_UPLOAD_NOTIFY_URL: ${VIDEO_UPLOAD_NOTIFY_URL}
-        ANALYSIS_SERVICE_URL: ${ANALYSIS_SERVICE_URL}
-        SECRET_KEY: ${UPLOAD_SECRET_KEY}
-      depends_on:
-        postgres:
-          condition: service_healthy
-      ports:
-        - "8050:8050"
-      networks:
-        - app-net
+    image: dase123/udlaia-stats:upload_service
+    container_name: upload_service
+    restart: always
+    env_file:
+      - envs/common.env
+      - envs/upload.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8050:8050"
+    networks:
+      - app-net
+
+  events_service:
+    image: dase123/udlaia-stats:events_service
+    container_name: events_service
+    restart: always
+    ports:
+      - "8060:8060"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - app-net
+    env_file:
+      - envs/common.env
+      - envs/events.env
 
   trigger-service:
     build:
@@ -130,10 +173,7 @@ services:
       dockerfile: Dockerfile.triggers
     container_name: trigger-service
     restart: no
-    env_file: .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file: envs/common.env
     depends_on:
       studentservice:
         condition: service_started
@@ -144,9 +184,10 @@ services:
     networks:
       - app-net
 
-
 volumes:
   postgres_data:
+    driver: local
+  broker_data:
     driver: local
 
 networks:
