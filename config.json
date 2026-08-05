@@ -1,0 +1,24 @@
+{
+  "repositories": {
+    "https://github.com/UDLAIA-STATS/authservice.git": "authservice",
+    "https://github.com/UDLAIA-STATS/teamservice.git": "teamservice",
+    "https://github.com/UDLAIA-STATS/studentservice.git": "studentservice",
+    "https://github.com/UDLAIA-STATS/kafkaservice.git": "events_service",
+    "https://github.com/UDLAIA-STATS/upload_r2_service.git": "upload_service"
+  },
+  "settings": {
+    "checkIntervalSeconds": 60,
+    "globalWaitAfterCommitSeconds": 120,
+    "pullRetryIntervalSeconds": 60,
+    "maxPullAttempts": 3,
+    "defaultBranch": "main",
+    "customWaitSeconds": {
+      "authservice": 480,
+      "teamservice": 180
+    }
+  },
+  "logging": {
+    "logFile": "watchtower.log",
+    "stateDir": "$env:TEMP\\watchtower_github_state"
+  }
+}
